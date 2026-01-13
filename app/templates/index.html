@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Impressão de Etiquetas</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/index.css') }}"/>
+
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+      type="image/x-icon"
+      />
+      
+    
+  </head>
+
+  <body>
+    <main class="layout">
+      <!-- ESQUERDA -->
+      <section class="card">
+        <h1>Impressão de Etiquetas</h1>
+        <div class="subtitle">Buscar itens pelo lote</div>
+
+        <form class="search" action="/buscar" method="get">
+          <div class="lote-input">
+            <span class="lote-prefix">LIC'</span>
+
+            <input
+              type="text"
+              id="inputLote"
+              name="numeros"
+              value="{{ numeros if numeros else '' }}"
+              placeholder="Digite o restante do lote (Enter para vários)"
+            />
+          </div>
+
+          <button id="btnBuscar">Buscar</button>
+        </form>
+
+        {% if mensagem %}
+        <div id="alertMensagem" class="alert-warning">{{ mensagem }}</div>
+        {% endif %} {% if resultados %}
+        <table id="tabelaResultados" data-total="{{ resultados|length }}">
+          <thead>
+            <tr>
+              <th>Lote</th>
+              <th>Código</th>
+              <th>Descrição</th>
+              <th>Validade</th>
+              <th>Selecionar</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in resultados %}
+            <tr data-id="{{ r['id'] }}">
+              <td>{{ r["Lote"] }}</td>
+              <td>{{ r["Codigo"] }}</td>
+              <td>{{ r["Descricao"] }}</td>
+              <td>{{ r["validade"] }}</td>
+              <td>
+                <a
+                  class="btn-preview"
+                  href="/etiqueta/{{ r['id'] }}"
+                  target="preview"
+                >
+                  Visualizar
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </section>
+
+      <!-- DIREITA -->
+      <section class="card preview">
+        <div class="preview-header">Preview da etiqueta</div>
+
+        {% if resultados %}
+        <iframe name="preview" id="previewFrame"></iframe>
+        {% else %}
+        <div class="preview-placeholder">
+          Selecione um item para visualizar a etiqueta
+        </div>
+        {% endif %}
+
+        <div class="acoes acoes-coluna">
+          <select id="modeloEtiqueta" class="select-modelo">
+            <option value="67x26">Etiqueta 67 × 26 (Padrão)</option>
+            <option value="40x20">Etiqueta 40 × 20</option>
+            <option value="25x10">Etiqueta 25 × 10</option>
+          </select>
+
+          <div class="quantidade-wrapper">
+            <label for="qtdEtiquetas">Quantidade</label>
+            <input type="number" id="qtdEtiquetas" min="1" value="1" />
+          </div>
+
+          <div id="modoImpressao" class="modo-badge hidden">Modo: —</div>
+
+          <button class="btn-print" id="btnPrint" disabled>
+            🖨 Imprimir na Zebra
+          </button>
+
+          <button id="btnLimpar" class="btn-limpar">🧹 Limpar</button>
+        </div>
+      </section>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/index.js') }}"></script>
+  </body>
+</html>

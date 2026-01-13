@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Etiqueta</title>
+
+<link
+  rel="stylesheet"
+  href="{{ url_for('static', filename='css/etiqueta.css') }}"
+>
+</head>
+
+<body>
+  <main class="etiqueta">
+    <div class="codigo">{{ codigo }}</div>
+
+    <!-- agora é a descrição inteira (string), sem loop -->
+    <div class="descricao">{{ descricao }}</div>
+
+    <div class="info">
+      <div><strong>Lote:</strong> {{ lote }}</div>
+      <div><strong>Validade:</strong> {{ validade }}</div>
+    </div>
+  </main>
+</body>
+</html>
