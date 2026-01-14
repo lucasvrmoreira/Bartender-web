@@ -3,7 +3,7 @@ from app.logger import logger
 from app.config import AGENT_PRINT_URL
 
 
-def agente_online(timeout=2) -> bool:
+def agente_online(timeout=5) -> bool:
     health_url = AGENT_PRINT_URL.replace("/print", "/health")
 
     try:
