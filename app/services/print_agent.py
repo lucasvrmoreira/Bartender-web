@@ -14,25 +14,16 @@ def agente_online(timeout=5) -> bool:
 
 
 def enviar_para_agente(zpl: str, copies: int = 1) -> bool:
-    if not agente_online():
-        logger.warning("Agente de impressão OFFLINE")
-        return False
-
     payload = {
         "zpl": zpl,
         "copies": copies
     }
 
-    logger.debug(
-        "Enviando ZPL para agente de impressão",
-        extra={"copies": copies}
-    )
-
     try:
         response = requests.post(
             AGENT_PRINT_URL,
             json=payload,
-            timeout=5
+            timeout=10
         )
         response.raise_for_status()
 
@@ -45,3 +36,4 @@ def enviar_para_agente(zpl: str, copies: int = 1) -> bool:
             exc_info=True
         )
         return False
+
