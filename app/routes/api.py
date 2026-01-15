@@ -53,16 +53,15 @@ def importar_item():
 @api_bp.route("/api/importar-lote", methods=["POST"])
 def importar_lote():
     data = request.get_json(silent=True)
-
     if not data or "itens" not in data:
         return {"erro": "JSON inválido ou chave 'itens' ausente"}, 400
 
-    total = 0
+    itens_processados = []
 
     try:
         for item in data["itens"]:
+            # Prepara os dados antes de enviar para o banco
             status = normalizar_status(item.get("status"))
-
             validade = None
             validade_raw = item.get("validade")
             if validade_raw:
@@ -70,19 +69,21 @@ def importar_lote():
                     validade = datetime.strptime(validade_raw, "%d/%m/%Y").date()
                 except ValueError:
                     validade = None
+            
+            # Adiciona em uma lista temporária
+            itens_processados.append((
+                item["codigo"],
+                item["descricao"],
+                item["lote"],
+                status,
+                validade
+            ))
 
-            upsert_item(
-                codigo=item["codigo"],
-                descricao=item["descricao"],
-                lote=item["lote"],
-                status=status,
-                validade=validade
-            )
-            total += 1
+        # ENVIA TUDO DE UMA VEZ (Você precisará criar essa função no repository.py)
+        from app.db.repository import upsert_lote_db
+        upsert_lote_db(itens_processados)
 
-    except KeyError as e:
-        return {"erro": f"Campo ausente: {str(e)}"}, 400
     except Exception as e:
         return {"erro": str(e)}, 500
 
-    return {"status": "ok", "total_processado": total}
+    return {"status": "ok", "total_processado": len(itens_processados)}
