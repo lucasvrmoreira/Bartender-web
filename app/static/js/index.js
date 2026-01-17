@@ -242,48 +242,39 @@ if (el.inputLote) {
 
 async function verificarConexaoCloud() {
   const overlay = document.getElementById("loadingOverlay");
+  if (!overlay) return;
 
-  // Tenta verificar a conexão IMEDIATAMENTE
-  try {
-    const start = Date.now();
-    const response = await fetch("/api/importar-item", { method: "OPTIONS" });
-    const end = Date.now();
+  console.log("Iniciando verificação de conexão...");
 
-    // Se o servidor respondeu MUITO rápido (menos de 0.5s) e com sucesso,
-    // significa que ele já está acordado. Esconde a nuvem imediatamente.
-    if (
-      response.status !== 502 &&
-      response.status !== 504 &&
-      end - start < 500
-    ) {
-      if (overlay) overlay.style.display = "none";
-      return; // Sai da função, não precisa fazer loop
-    }
-  } catch (e) {
-    // Se der erro de rede, continua para o loop abaixo
-  }
-
-  // === Se chegou aqui, o servidor está lento ou dormindo ===
-
-  // Garante que o overlay está visível
-  if (overlay) overlay.style.display = "flex";
-
-  let servidorPronto = false;
-
-  while (!servidorPronto) {
+  let sucesso = false;
+  
+  // Tenta por no máximo 30 segundos
+  for (let i = 0; i < 15; i++) {
     try {
-      const response = await fetch("/api/importar-item", { method: "OPTIONS" });
+      // Mudamos para GET para garantir que qualquer servidor responda
+      const response = await fetch("/api/importar-item");
+      
+      // Se o servidor respondeu (mesmo que seja erro 404 ou 405), ele está VIVO
       if (response.status !== 502 && response.status !== 504) {
-        servidorPronto = true;
+        console.log("Servidor detectado!");
+        sucesso = true;
+        break;
       }
     } catch (error) {
-      console.log("Aguardando Render...");
+      console.log("Tentativa " + (i+1) + ": Servidor ainda offline...");
     }
-
-    if (!servidorPronto) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-    }
+    // Espera 2 segundos antes de tentar de novo
+    await new Promise(r => setTimeout(r, 2000));
   }
 
-  if (overlay) overlay.style.display = "none";
+  // Se o servidor acordou OU se passou muito tempo (desistência), removemos a nuvem
+  console.log("Removendo overlay de carregamento.");
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 0.5s ease";
+  setTimeout(() => {
+    overlay.style.display = "none";
+  }, 500);
 }
+
+// Chame a função apenas UMA VEZ no final do arquivo
+verificarConexaoCloud();
