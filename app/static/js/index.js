@@ -243,37 +243,47 @@ if (el.inputLote) {
 async function verificarConexaoCloud() {
   const overlay = document.getElementById("loadingOverlay");
 
-  // 1. Mostra a animação da nuvem assim que a página carrega
+  // Tenta verificar a conexão IMEDIATAMENTE
+  try {
+    const start = Date.now();
+    const response = await fetch("/api/importar-item", { method: "OPTIONS" });
+    const end = Date.now();
+
+    // Se o servidor respondeu MUITO rápido (menos de 0.5s) e com sucesso,
+    // significa que ele já está acordado. Esconde a nuvem imediatamente.
+    if (
+      response.status !== 502 &&
+      response.status !== 504 &&
+      end - start < 500
+    ) {
+      if (overlay) overlay.style.display = "none";
+      return; // Sai da função, não precisa fazer loop
+    }
+  } catch (e) {
+    // Se der erro de rede, continua para o loop abaixo
+  }
+
+  // === Se chegou aqui, o servidor está lento ou dormindo ===
+
+  // Garante que o overlay está visível
   if (overlay) overlay.style.display = "flex";
 
   let servidorPronto = false;
 
-  // 2. Loop que fica tentando falar com o servidor até ele responder
   while (!servidorPronto) {
     try {
-      // Tenta um "ping" na sua rota de API
-      // Usamos OPTIONS por ser uma requisição bem leve
       const response = await fetch("/api/importar-item", { method: "OPTIONS" });
-
-      // Se o status for diferente de erro de gateway (502/504), o Python acordou!
       if (response.status !== 502 && response.status !== 504) {
         servidorPronto = true;
       }
     } catch (error) {
-      console.log("Aguardando servidor Render/Neon acordar...");
+      console.log("Aguardando Render...");
     }
 
     if (!servidorPronto) {
-      // Espera 2 segundos antes de tentar de novo para não travar o navegador
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
 
-  // 3. Quando o servidor responde, esconde a nuvem e libera o site
   if (overlay) overlay.style.display = "none";
 }
-
-// Inicia a verificação automaticamente ao abrir o site
-window.addEventListener("load", verificarConexaoCloud);
-
-verificarConexaoCloud();
