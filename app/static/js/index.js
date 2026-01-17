@@ -125,8 +125,8 @@ function imprimir() {
 
     fetch(
       `/imprimir-fila?modelo=${modelo}&numeros=${encodeURIComponent(
-        numeros
-      )}&qtd=${qtd}`
+        numeros,
+      )}&qtd=${qtd}`,
     )
       .then(() => {
         toast("Fila enviada para a impressora Zebra");
@@ -237,42 +237,59 @@ if (el.inputLote) {
 }
 
 /* ======================================================
-   LOGICA DO LOTTIE (VIGIA DA CLOUD)
+   LOGICA DO LOTTIE (VIGIA DA CLOUD - ZERO FLASH)
 ====================================================== */
 
 async function verificarConexaoCloud() {
   const overlay = document.getElementById("loadingOverlay");
   if (!overlay) return;
 
-  console.log("Iniciando verificação de conexão...");
+  console.log("Verificando saúde da aplicação...");
 
-  let sucesso = false;
-  
-  // Tenta por no máximo 30 segundos
+  // 1. O "Timer de Graça":
+  // Agendamos para mostrar o overlay apenas se a conexão demorar mais de 500ms.
+  // Se o servidor responder rápido, cancelaremos esse timer antes dele disparar.
+  const timerLoading = setTimeout(() => {
+    overlay.classList.remove("hidden");
+    overlay.classList.add("visible");
+    console.log("Demorou um pouco... exibindo nuvem de carregamento.");
+  }, 500);
+
+  let servidorPronto = false;
+
+  // Tenta conectar por no máximo 15 tentativas (aprox 30s)
   for (let i = 0; i < 15; i++) {
     try {
-      // Mudamos para GET para garantir que qualquer servidor responda
+      // Usamos um endpoint leve apenas para ver se o servidor responde
       const response = await fetch("/api/importar-item");
-      
-      // Se o servidor respondeu (mesmo que seja erro 404 ou 405), ele está VIVO
+
+      // Se a resposta NÃO for erro de Gateway (502/504), o Render/Neon já acordou!
       if (response.status !== 502 && response.status !== 504) {
-        console.log("Servidor detectado!");
-        sucesso = true;
-        break;
+        console.log("Servidor detectado e operante!");
+        servidorPronto = true;
+        break; // Sai do loop imediatamente
       }
     } catch (error) {
-      console.log("Tentativa " + (i+1) + ": Servidor ainda offline...");
+      console.log(`Tentativa ${i + 1}: Servidor ainda iniciando...`);
     }
-    // Espera 2 segundos antes de tentar de novo
-    await new Promise(r => setTimeout(r, 2000));
+
+    // Se falhou, espera 2 segundos antes de tentar de novo
+    // (Enquanto isso, se passar de 500ms total, a nuvem vai aparecer sozinha via timer)
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
-  // Se o servidor acordou OU se passou muito tempo (desistência), removemos a nuvem
-  console.log("Removendo overlay de carregamento.");
-  overlay.style.opacity = "0";
-  overlay.style.transition = "opacity 0.5s ease";
+  // 2. Limpeza Final:
+  // IMPORTANTE: Cancelamos o timer. Se a conexão foi rápida (ex: 200ms),
+  // o timer nunca chegou a rodar, e o usuário NUNCA viu a nuvem.
+  clearTimeout(timerLoading);
+
+  // Garante que o overlay suma (ou continue escondido)
+  overlay.classList.remove("visible");
+  overlay.classList.add("hidden");
+
+  // Opcional: Remove do DOM após a transição do CSS terminar (limpeza total)
   setTimeout(() => {
-    overlay.style.display = "none";
+    // overlay.style.display = 'none'; // Se quiser remover totalmente
   }, 500);
 }
 
