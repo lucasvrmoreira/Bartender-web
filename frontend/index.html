@@ -1,77 +1,81 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Barthender Web</title>
-    <script src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs" type="module"></script>
+    <script
+      src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs"
+      type="module"
+    ></script>
     <style>
-        body {
-            margin: 0;
-            height: 100vh
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: #ffffff;
-            font-family: "Segoe UI", sans-serif;
-            text-align: center;
-        }
-        h2 { margin-top: -30px; color: #333; font-weight: 600; }
-        p { color: #666; font-size: 14px; margin-top: 5px; }
-        .hidden { opacity: 0; }
-        .status { transition: color 0.3s; }
+      body {
+          margin: 0;
+          height: 100vh
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          font-family: "Segoe UI", sans-serif;
+          text-align: center;
+      }
+      h2 { margin-top: -30px; color: #333; font-weight: 600; }
+      p { color: #666; font-size: 14px; margin-top: 5px; }
+      .hidden { opacity: 0; }
+      .status { transition: color 0.3s; }
     </style>
-    <link rel="icon" type="image/png" href="favicon.ico">
-    
-</head>
-<body>
 
+    <link 
+        rel="icon" 
+        type="image/png" 
+        href="{{ url_for('frontend', filename='favicon.ico') }}"
+        />
+  </head>
+  <body>
     <dotlottie-player
-        src="./cloud.json"
-        background="transparent"
-        speed="1"
-        style="width: 350px; height: 350px"
-        loop
-        autoplay>
+      src="./cloud.json"
+      background="transparent"
+      speed="1"
+      style="width: 350px; height: 350px"
+      loop
+      autoplay
+    >
     </dotlottie-player>
 
     <h2>Conectando ao Servidor...</h2>
     <p id="status-msg" class="status">Acordando a aplicação...</p>
 
     <script>
-        const URL_DO_SISTEMA = "https://bartender-web.onrender.com/"; 
-        
+      const URL_DO_SISTEMA = "https://bartender-web.onrender.com/";
 
-        async function acordarServidor() {
-            const msg = document.getElementById('status-msg');
-            
-            try {
-                console.log("Pingando servidor...");
-                // Tenta acessar o site. O 'no-cors' permite tentar mesmo de outro domínio
-                await fetch(URL_DO_SISTEMA, { mode: 'no-cors' });
+      async function acordarServidor() {
+        const msg = document.getElementById("status-msg");
 
-                // SE PASSOU DAQUI, O SERVIDOR RESPONDEU!
-                msg.style.color = "green";
-                msg.innerText = "Servidor Online! Redirecionando...";
-                
-                // Espera 1 segundinho só pra garantir e redireciona
-                setTimeout(() => {
-                    window.location.href = URL_DO_SISTEMA;
-                }, 1500);
+        try {
+          console.log("Pingando servidor...");
+          // Tenta acessar o site. O 'no-cors' permite tentar mesmo de outro domínio
+          await fetch(URL_DO_SISTEMA, { mode: "no-cors" });
 
-            } catch (error) {
-                // Se der erro de rede, é porque ainda está totalmente desligado ou falhando
-                console.log("Servidor dormindo... tentando de novo.");
-                
-                // Tenta de novo em 2 segundos
-                setTimeout(acordarServidor, 2000);
-            }
+          // SE PASSOU DAQUI, O SERVIDOR RESPONDEU!
+          msg.style.color = "green";
+          msg.innerText = "Servidor Online! Redirecionando...";
+
+          // Espera 1 segundinho só pra garantir e redireciona
+          setTimeout(() => {
+            window.location.href = URL_DO_SISTEMA;
+          }, 1500);
+        } catch (error) {
+          // Se der erro de rede, é porque ainda está totalmente desligado ou falhando
+          console.log("Servidor dormindo... tentando de novo.");
+
+          // Tenta de novo em 2 segundos
+          setTimeout(acordarServidor, 2000);
         }
+      }
 
-        // Inicia o processo assim que a tela abre
-        acordarServidor();
+      // Inicia o processo assim que a tela abre
+      acordarServidor();
     </script>
-
-</body>
+  </body>
 </html>
