@@ -275,3 +275,5 @@ async function verificarConexaoCloud() {
 
 // Inicia a verificação automaticamente ao abrir o site
 window.addEventListener("load", verificarConexaoCloud);
+
+verificarConexaoCloud();

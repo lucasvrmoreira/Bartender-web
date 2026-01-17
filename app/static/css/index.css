@@ -307,7 +307,7 @@ iframe {
 
 /* Estilo para a tela de carregamento (Lottie) */
 #loadingOverlay {
-  display: none; /* Começa escondido, o JS vai mostrar */
+  display: flex; /* Começa escondido, o JS vai mostrar */
   position: fixed;
   top: 0;
   left: 0;
