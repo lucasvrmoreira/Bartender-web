@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
@@ -14,32 +14,10 @@
       href="{{ url_for('static', filename='favicon.ico') }}"
       type="image/x-icon"
     />
-
-    <script
-      src="https://unpkg.com/@dotlottie/player-component@latest/dist/dotlottie-player.mjs"
-      type="module"
     ></script>
   </head>
 
   <body>
-    <div id="loadingOverlay" class="hidden">
-      <dotlottie-player
-        src="{{ url_for('static', filename='animations/cloud.json') }}"
-        background="transparent"
-        speed="1"
-        style="width: 400px; height: 400px"
-        loop
-        autoplay
-      >
-      </dotlottie-player>
-      <h2 style="font-family: 'Segoe UI', sans-serif; margin-top: -40px">
-        Conectando à Cloud...
-      </h2>
-      <p style="font-family: 'Segoe UI', sans-serif; color: #666">
-        Aguarde enquanto o Render e o Neon iniciam os serviços.
-      </p>
-    </div>
-
     <main class="layout">
       <section class="card">
         <h1>Impressão de Etiquetas</h1>
