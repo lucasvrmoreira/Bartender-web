@@ -14,9 +14,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-AGENT_PRINT_URL = os.getenv("AGENT_PRINT_URL")
+class Config:
+    
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SQLALCHEMY_TRACK_MODIFICATIONS = False 
+    
+    AGENT_PRINT_URL = os.getenv("AGENT_PRINT_URL", "http://127.0.0.1:9101/print")
+    TABELA = "cellavita"
+    SCHEMA = "barthenderweb"
 
 
-TABELA = "cellavita"
-SCHEMA = "barthenderweb"
+AGENT_PRINT_URL = Config.AGENT_PRINT_URL
+TABELA = Config.TABELA

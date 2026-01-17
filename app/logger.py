@@ -2,7 +2,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 from dotenv import load_dotenv
-from app.config import SCHEMA  # opcional, só para contexto
+from app.config import Config  
 
 load_dotenv() 
 print("APP_ENV LIDO NO LOGGER:", os.getenv("APP_ENV"))

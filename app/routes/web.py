@@ -10,9 +10,8 @@ Responsável por:
 
 
 from flask import Blueprint, render_template, request
-
-from app.db.connection import get_conn
-from app.config import TABELA
+from app.db.models import db, Item  
+from app.config import Config
 
 web_bp = Blueprint("web", __name__)
 
@@ -25,41 +24,21 @@ def home():
 @web_bp.route("/buscar")
 def buscar():
     import re
-
     numeros_raw = request.args.get("numeros", "").strip()
     numeros = re.findall(r"\d+", numeros_raw)
 
     if not numeros:
         return render_template("index.html", resultados=None)
 
-    lotes = [f"LIC'{n}" for n in numeros]
+    
+    lotes_formatados = [f"LIC'{n}" for n in numeros]
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    if len(lotes) == 1:
-        cur.execute(f"""
-            SELECT id, "Codigo", "Descricao", "Lote", "Validade" as validade
-            FROM {TABELA}
-            WHERE "Lote" LIKE %s
-            ORDER BY "Lote"
-            LIMIT 50
-        """, (lotes[0] + "%",))
-    else:
-        placeholders = ",".join("%s" for _ in lotes)
-        cur.execute(f"""
-            SELECT id, "Codigo", "Descricao", "Lote", "Validade" as validade
-            FROM {TABELA}
-            WHERE "Lote" IN ({placeholders})
-            ORDER BY "Lote"
-        """, lotes)
-
-    resultados = cur.fetchall()
-    conn.close()
+    
+    resultados = Item.query.filter(Item.Lote.in_(lotes_formatados)).all()
 
     mensagem = None
     if not resultados:
-        mensagem = "⚠️ Nenhum lote encontrado para a busca informada."
+        mensagem = f"⚠️ Nenhum lote encontrado para: {', '.join(lotes_formatados)}"
 
     return render_template(
         "index.html",
@@ -71,17 +50,8 @@ def buscar():
 
 @web_bp.route("/etiqueta/<int:id>")
 def etiqueta(id):
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute(f"""
-        SELECT "Codigo", "Descricao", "Lote", "Validade" as validade
-        FROM {TABELA}
-        WHERE id = %s
-    """, (id,))
-
-    item = cur.fetchone()
-    conn.close()
+    
+    item = Item.query.get(id) 
 
     if not item:
         return "Etiqueta não encontrada", 404
@@ -89,8 +59,8 @@ def etiqueta(id):
     return render_template(
         "label.html",
         item_id=id,
-        codigo=item["Codigo"],
-        descricao=item["Descricao"],
-        lote=item["Lote"],
-        validade=item["validade"]
+        codigo=item.Codigo,      
+        descricao=item.Descricao, 
+        lote=item.Lote,           
+        validade=item.Validade    
     )

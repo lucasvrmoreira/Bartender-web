@@ -1,32 +1,22 @@
 """
-Rotas de API (JSON).
-
-Responsável por:
-- receber dados externos
-- integrar com outros sistemas
-- importar informações para o backend
+Rotas de API (JSON) - Versão SQLAlchemy.
 """
 
-
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from datetime import datetime
-
+from app.db.models import db, Item # Importamos o motor e o modelo
 from app.services.status import normalizar_status
-from app.db.repository import upsert_item
 
 api_bp = Blueprint("api", __name__)
-
 
 @api_bp.route("/api/importar-item", methods=["POST"])
 def importar_item():
     data = request.get_json()
-
     if not data:
         return {"erro": "JSON inválido"}, 400
 
     try:
-        status = normalizar_status(data.get("status"))
-
+        # 1. Tratamento da data
         validade = None
         validade_raw = data.get("validade")
         if validade_raw:
@@ -35,19 +25,32 @@ def importar_item():
             except ValueError:
                 validade = None
 
-        upsert_item(
-            codigo=data["codigo"],
-            descricao=data["descricao"],
-            lote=data["lote"],
-            status=status,
-            validade=validade
-        )
-    except KeyError as e:
-        return {"erro": f"Campo ausente: {str(e)}"}, 400
-    except Exception as e:
-        return {"erro": str(e)}, 500
+        # 2. Lógica de UPSERT (Sincronização)
+        # Procuramos se já existe um item com o mesmo Código e Lote
+        item = Item.query.filter_by(Codigo=data["codigo"], Lote=data["lote"]).first()
 
-    return {"status": "ok"}
+        if item:
+            # Se existe, atualizamos
+            item.Descricao = data.get("descricao")
+            item.Status = normalizar_status(data.get("status"))
+            item.Validade = validade
+        else:
+            # Se não existe, criamos um novo
+            novo_item = Item(
+                Codigo=data["codigo"],
+                Descricao=data.get("descricao"),
+                Lote=data["lote"],
+                Status=normalizar_status(data.get("status")),
+                Validade=validade
+            )
+            db.session.add(novo_item)
+
+        db.session.commit() # Grava no banco de dados
+        return {"status": "ok"}
+
+    except Exception as e:
+        db.session.rollback()
+        return {"erro": str(e)}, 500
 
 
 @api_bp.route("/api/importar-lote", methods=["POST"])
@@ -56,34 +59,42 @@ def importar_lote():
     if not data or "itens" not in data:
         return {"erro": "JSON inválido ou chave 'itens' ausente"}, 400
 
-    itens_processados = []
-
     try:
-        for item in data["itens"]:
-            # Prepara os dados antes de enviar para o banco
-            status = normalizar_status(item.get("status"))
+        for item_data in data["itens"]:
+            # Processamento de data
             validade = None
-            validade_raw = item.get("validade")
-            if validade_raw:
+            v_raw = item_data.get("validade")
+            if v_raw:
                 try:
-                    validade = datetime.strptime(validade_raw, "%d/%m/%Y").date()
+                    validade = datetime.strptime(v_raw, "%d/%m/%Y").date()
                 except ValueError:
                     validade = None
-            
-            # Adiciona em uma lista temporária
-            itens_processados.append((
-                item["codigo"],
-                item["descricao"],
-                item["lote"],
-                status,
-                validade
-            ))
 
-        # ENVIA TUDO DE UMA VEZ (Você precisará criar essa função no repository.py)
-        from app.db.repository import upsert_lote_db
-        upsert_lote_db(itens_processados)
+            # UPSERT para cada item do lote
+            item = Item.query.filter_by(
+                Codigo=item_data["codigo"], 
+                Lote=item_data["lote"]
+            ).first()
+
+            status_norm = normalizar_status(item_data.get("status"))
+
+            if item:
+                item.Descricao = item_data.get("descricao")
+                item.Status = status_norm
+                item.Validade = validade
+            else:
+                novo = Item(
+                    Codigo=item_data["codigo"],
+                    Descricao=item_data.get("descricao"),
+                    Lote=item_data["lote"],
+                    Status=status_norm,
+                    Validade=validade
+                )
+                db.session.add(novo)
+
+        db.session.commit() # Salva todos os itens de uma vez
+        return {"status": "ok", "total_processado": len(data["itens"])}
 
     except Exception as e:
+        db.session.rollback()
         return {"erro": str(e)}, 500
-
-    return {"status": "ok", "total_processado": len(itens_processados)}

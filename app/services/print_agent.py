@@ -1,10 +1,11 @@
 import requests
 from app.logger import logger
-from app.config import AGENT_PRINT_URL
-
+from app.config import Config # Importação está correta
 
 def agente_online(timeout=5) -> bool:
-    health_url = AGENT_PRINT_URL.replace("/print", "/health")
+    # ERRO ANTERIOR: Config.replace
+    # CORREÇÃO: Usar o atributo AGENT_PRINT_URL
+    health_url = Config.AGENT_PRINT_URL.replace("/print", "/health")
 
     try:
         r = requests.get(health_url, timeout=timeout)
@@ -20,8 +21,10 @@ def enviar_para_agente(zpl: str, copies: int = 1) -> bool:
     }
 
     try:
+        # ERRO ANTERIOR: requests.post(Config, ...)
+        # CORREÇÃO: Passar a URL que está dentro da classe
         response = requests.post(
-            AGENT_PRINT_URL,
+            Config.AGENT_PRINT_URL, 
             json=payload,
             timeout=10
         )
@@ -36,4 +39,3 @@ def enviar_para_agente(zpl: str, copies: int = 1) -> bool:
             exc_info=True
         )
         return False
-

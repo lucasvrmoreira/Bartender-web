@@ -11,8 +11,7 @@ Responsável por:
 
 from flask import Blueprint, request
 from app.logger import logger
-from app.db.connection import get_conn
-from app.config import TABELA
+from app.db.models import db, Item
 from app.utils.datas import formatar_data_br
 from app.services.etiqueta.factory import gerar_zpl_por_modelo
 from app.services.print_agent import enviar_para_agente
@@ -26,17 +25,7 @@ def imprimir(id):
     
     logger.info("Solicitação de impressão", extra={"id": id})
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    cur.execute(f"""
-        SELECT "Codigo", "Descricao", "Lote", "Validade" as validade
-        FROM {TABELA}
-        WHERE id = %s
-    """, (id,))
-
-    item = cur.fetchone()
-    conn.close()
+    item = Item.query.get(id)
 
     
     if not item:
@@ -52,13 +41,13 @@ def imprimir(id):
         extra={"modelo": modelo, "quantidade": qtd}
     )
 
-    validade_br = formatar_data_br(item["validade"])
+    validade_br = formatar_data_br(item.Validade)
 
     zpl = gerar_zpl_por_modelo(
         modelo=modelo,
-        codigo=item["Codigo"],
-        descricao=item["Descricao"],
-        lote=item["Lote"],
+        codigo=item.Codigo,
+        descricao=item.Descricao,
+        lote=item.Lote,
         validade=validade_br
     )
 
@@ -102,19 +91,7 @@ def imprimir_fila():
 
     lotes = [f"LIC'{n}" for n in numeros]
 
-    conn = get_conn()
-    cur = conn.cursor()
-
-    placeholders = ",".join("%s" for _ in lotes)
-    cur.execute(f"""
-        SELECT "Codigo", "Descricao", "Lote", "Validade" as validade
-        FROM {TABELA}
-        WHERE "Lote" IN ({placeholders})
-        ORDER BY "Lote"
-    """, lotes)
-
-    itens = cur.fetchall()
-    conn.close()
+    itens = Item.query.filter(Item.Lote.in_(lotes)).all()
 
     if not itens:
         return "Nenhum item encontrado", 404

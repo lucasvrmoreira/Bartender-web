@@ -5,6 +5,10 @@ Responsável apenas por iniciar o servidor Flask.
 
 
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 print("DATABASE_URL LIDA PELO PYTHON:", os.getenv("DATABASE_URL"))
 
 from app.app import app

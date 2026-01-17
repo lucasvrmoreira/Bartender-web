@@ -1,24 +1,14 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
-import os
+from flask_sqlalchemy import SQLAlchemy
+from app.config import DATABASE_URL
+import os   
 
-from app.config import DATABASE_URL, SCHEMA
-
-
-def get_conn():
-    conn_args = {
-        "dsn": DATABASE_URL,
-        "cursor_factory": RealDictCursor
-    }
-
-    # 🔐 SSL só em produção
+def configure_db(app):
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', DATABASE_URL)
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
     if os.getenv("APP_ENV") == "production":
-        conn_args["sslmode"] = "require"
-
-    conn = psycopg2.connect(**conn_args)
-
-    cur = conn.cursor()
-    cur.execute(f"SET search_path TO {SCHEMA};")
-    cur.close()
-
-    return conn
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"connect_args": {"sslmode": "require"}}
+        
+    
+    from app.db.models import db
+    db.init_app(app)
