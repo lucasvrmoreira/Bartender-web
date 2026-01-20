@@ -101,10 +101,10 @@ def imprimir_fila():
     for item in itens:
         zpl = gerar_zpl_por_modelo(
             modelo=modelo,
-            codigo=item["Codigo"],
-            descricao=item["Descricao"],
-            lote=item["Lote"],
-            validade=formatar_data_br(item["validade"])
+            codigo=item.Codigo,
+            descricao=item.Descricao,
+            lote=item.Lote,
+            validade=formatar_data_br(item.Validade)
         )
         zpl_total += zpl + "\n"
 
