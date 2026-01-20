@@ -236,3 +236,48 @@ if (el.inputLote) {
   });
 }
 
+/* =========================================================
+   SENSOR DE HIBERNAÇÃO (RENDER -> VERCEL)
+   ========================================================= */
+(function () {
+  // --- CONFIGURAÇÃO ---
+  // Coloque aqui o link da sua Vercel
+  const URL_SALA_ESPERA = "https://bartender-web-six.vercel.app/";
+  const TEMPO_LIMITE = 3000; // 3 segundos
+
+  async function checarServidor() {
+    // Se a aba não estiver visível, não faz nada
+    if (document.visibilityState !== "visible") return;
+
+    console.log("Voltando para a aba... Checando servidor.");
+
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), TEMPO_LIMITE);
+
+    try {
+      // Tenta acessar a raiz '/'
+      await fetch("/", { signal: controller.signal });
+      clearTimeout(id);
+      console.log("Servidor acordado!");
+    } catch (error) {
+      // Se der erro de tempo ou rede
+      if (
+        error.name === "AbortError" ||
+        error.message.includes("NetworkError") ||
+        error.message.includes("Failed to fetch")
+      ) {
+        console.warn("Servidor dormindo. Indo para sala de espera...");
+
+        // Salva a URL atual
+        const atual = window.location.pathname + window.location.search;
+        // Redireciona
+        window.location.href = `${URL_SALA_ESPERA}?returnTo=${encodeURIComponent(atual)}`;
+      }
+    }
+  }
+
+  // Adiciona o ouvinte
+  document.addEventListener("visibilitychange", checarServidor);
+})();
+
+
