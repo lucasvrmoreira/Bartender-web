@@ -3,6 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <title>Impressão de Etiquetas</title>
+
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/index.css') }}"
@@ -10,9 +11,14 @@
 
     <link
       rel="icon"
-      type="image/png"
-      href="{{ url_for('static', filename='favicon.ico') }}"
       type="image/x-icon"
+      href="{{ url_for('static', filename='favicon.ico') }}"
+    />
+
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='icon.png') }}"
     />
 
     <link
@@ -24,7 +30,7 @@
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker
           .register("{{ url_for('static', filename='sw.js') }}")
-          .then(() => console.log("PWA Registrada com sucesso!"));
+          .then(() => console.log("PWA: Registrada com sucesso!"));
       }
     </script>
   </head>
