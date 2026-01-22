@@ -1,21 +1,23 @@
 "Esse sera nosso dicionario de modelos, substituindo o uso direto de SQL em varias partes do codigo"
 
-from flask_sqlalchemy import SQLAlchemy
-db = SQLAlchemy()
 
-class Item(db.Model):
+from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
+# Importa o 'Base' que criamos no arquivo database.py
+from app.db.database import Base 
+
+class Item(Base):
     __tablename__ = 'cellavita'
     
-    # Esta linha é o segredo para resolver o UndefinedTable
+    
     __table_args__ = (
-        db.UniqueConstraint('Codigo', 'Lote', name='uix_codigo_lote'),
-        {'schema': 'barthenderweb'} # <--- Adicione isso aqui!
+        UniqueConstraint('Codigo', 'Lote', name='uix_codigo_lote'),
+        {'schema': 'barthenderweb'} 
     )
 
-    id = db.Column(db.Integer, primary_key=True)
-    Codigo = db.Column(db.String, nullable=False)
-    Descricao = db.Column(db.String, nullable=False)
-    Lote = db.Column(db.String, nullable=False)
-    Status = db.Column(db.String, nullable=False)
-    Validade = db.Column(db.Date, nullable=True)
-
+   
+    id = Column(Integer, primary_key=True)
+    Codigo = Column(String, nullable=False)
+    Descricao = Column(String, nullable=False)
+    Lote = Column(String, nullable=False)
+    Status = Column(String, nullable=False)
+    Validade = Column(Date, nullable=True)
