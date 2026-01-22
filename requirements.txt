@@ -3,4 +3,5 @@ gunicorn
 python-dotenv
 psycopg2-binary
 requests
-Flask-SQLAlchemy
+Flask-SQLAlchemyasyncpg
+asyncpg
