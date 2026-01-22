@@ -6,11 +6,15 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # 2. AJUSTA A URL PARA O ASYNCPG (SE FOR POSTGRES)
-if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+if DATABASE_URL:
+    
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+        
+    elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
+        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 
 # 3. CRIA O MOTOR (ENGINE)
-# echo=True ajuda a ver o SQL no terminal (bom para debug)
 engine = create_async_engine(DATABASE_URL, echo=True)
 
 # 4. FÁBRICA DE SESSÕES
