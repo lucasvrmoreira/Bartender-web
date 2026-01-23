@@ -9,7 +9,7 @@ Responsabilidade:
 
 
 from flask import Flask
-from app.db.models import db # Importa o db do seu models.py
+from flask_sqlalchemy import SQLAlchemy
 from app.config import Config
 from app.routes.web import web_bp
 from app.routes.api import api_bp
@@ -17,6 +17,10 @@ from app.routes.print import print_bp
 from app.logger import logger
 
 app = Flask(__name__)
+
+db = SQLAlchemy()
+db.init_app(app)
+
 # 1. Carrega as configurações da classe Config
 app.config.from_object(Config)
 
