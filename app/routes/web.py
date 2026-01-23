@@ -34,7 +34,7 @@ def buscar():
     lotes_formatados = [f"LIC'{n}" for n in numeros]
 
     
-    resultados = Item.query.filter(Item.Lote.in_(lotes_formatados)).all()
+    resultados = db.session.query(Item).filter(Item.Lote.in_(lotes_formatados)).all()
 
     mensagem = None
     if not resultados:
