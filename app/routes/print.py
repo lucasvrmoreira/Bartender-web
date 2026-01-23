@@ -25,7 +25,7 @@ def imprimir(id):
     
     logger.info("Solicitação de impressão", extra={"id": id})
 
-    item = Item.query.get(id)
+    item = db.session.query(Item).get(id)
 
     
     if not item:
