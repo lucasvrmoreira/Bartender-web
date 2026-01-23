@@ -4,6 +4,11 @@
 from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
 # Importa o 'Base' que criamos no arquivo database.py
 from app.db.database import Base 
+from flask_sqlalchemy import SQLAlchemy
+
+
+db = SQLAlchemy()
+
 
 class Item(Base):
     __tablename__ = 'cellavita'

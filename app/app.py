@@ -9,22 +9,18 @@ Responsabilidade:
 
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
 from app.config import Config
 from app.routes.web import web_bp
 from app.routes.api import api_bp
 from app.routes.print import print_bp
 from app.logger import logger
 
+# Importa o andaime
+from app.db.models import db 
+
 app = Flask(__name__)
-
-db = SQLAlchemy()
-db.init_app(app)
-
-# 1. Carrega as configurações da classe Config
 app.config.from_object(Config)
 
-# 2. ESTA LINHA É A SOLUÇÃO: Conecta o SQLAlchemy ao Flask
 db.init_app(app)
 
 app.register_blueprint(web_bp)
