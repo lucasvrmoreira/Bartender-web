@@ -110,60 +110,88 @@ function getNumerosLimpos() {
     .join(",");
 }
 
-function imprimir() {
-  if (imprimindo) return; // Previne múltiplos cliques
+const API_URL = "http://localhost:8000";
+
+
+function getNumerosArray() {
+  if (!el.inputLote) return [];
+  
+  return el.inputLote.value
+    .split(",")                 // Separa nas vírgulas
+    .map((n) => n.trim())       // Limpa espaços
+    .filter((n) => n.length > 0)// Tira vazios
+    .map((n) => {
+      // A MÁGICA É AQUI:
+      // Se o usuário digitou só "3710", a gente vira "LIC'3710"
+      // Se ele digitou "LIC'3710", a gente mantém igual.
+      return n.toUpperCase().startsWith("LIC'") ? n : `LIC'${n}`;
+    });
+}
+async function imprimir() {
+  if (imprimindo) return; 
   imprimindo = true;
 
-  const modelo = el.modelo?.value;
-  const qtd = el.qtd?.value || 1;
+  const modelo = el.modelo?.value || "67x26";
+  const qtd = parseInt(el.qtd?.value || 1);
+  let lotes = [];
 
-  // MODO FILA
-  if (el.tabela && parseInt(el.tabela.dataset.total) > 1) {
-    setBotaoLoading();
-
-    const numeros = getNumerosLimpos();
-
-    fetch(
-      `/imprimir-fila?modelo=${modelo}&numeros=${encodeURIComponent(
-        numeros,
-      )}&qtd=${qtd}`,
-    )
-      .then(() => {
-        toast("Fila enviada para a impressora Zebra");
-        limparTudo();
-        resetBotao();
-        imprimindo = false; // 🔓 libera
-      })
-      .catch(() => {
-        toast("Erro ao imprimir fila", "error");
-        resetBotao();
-        imprimindo = false; // 🔓 libera
-      });
-
-    return;
+  // 1. Identifica quais lotes imprimir
+  if (itemSelecionado) {
+    // Modo Individual: Pega o lote da tela ou do item clicado
+    // Se o itemSelecionado for o ID do banco, podemos usar a rota por ID
+    // Mas para simplificar, vamos usar a rota de lote (batch) que serve pra tudo
+    
+    // Precisamos pegar o texto do lote que está na tela ou input
+    // Se você tiver o número do lote no dataset, melhor. 
+    // Assumindo que o input tem o lote:
+    lotes = getNumerosArray();
+  } else {
+    // Modo Fila
+    lotes = getNumerosArray();
   }
 
-  // MODO INDIVIDUAL
-  if (!itemSelecionado) {
-    toast("Nenhum item selecionado", "error");
-    imprimindo = false; // 🔓 libera
+  if (lotes.length === 0) {
+    toast("Nenhum lote válido para imprimir", "error");
+    imprimindo = false;
     return;
   }
 
   setBotaoLoading();
 
-  fetch(`/imprimir/${itemSelecionado}?modelo=${modelo}&qtd=${qtd}`)
-    .then(() => {
-      toast("Etiqueta enviada para a impressora Zebra");
-      limparTudo();
-      resetBotao();
-      imprimindo = false; // 🔓 libera
-    })
-    .catch(() => {
-      toast("Erro ao imprimir", "error");
-      resetBotao();
-      imprimindo = false; // 🔓 libera
+  // 2. Monta o JSON (Payload)
+  const payload = {
+    lotes: lotes,
+    modelo: modelo,
+    copias: qtd
+  };
+
+  try {
+    // 3. Faz o POST para o FastAPI
+    const response = await fetch(`${API_URL}/print/batch`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+        // Tenta ler o erro que o FastAPI mandou
+        const erroJson = await response.json();
+        throw new Error(erroJson.detail || "Erro desconhecido");
+    }
+
+    const dados = await response.json();
+    toast(`Sucesso! ${dados.enviados} etiquetas enviadas.`);
+    limparTudo();
+    
+  } catch (erro) {
+    console.error(erro);
+    toast(`Erro: ${erro.message}`, "error");
+  } finally {
+    resetBotao();
+    imprimindo = false;
+  }
 }
 
 /* ======================================================

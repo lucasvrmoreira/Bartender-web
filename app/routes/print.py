@@ -91,7 +91,7 @@ def imprimir_fila():
 
     lotes = [f"LIC'{n}" for n in numeros]
 
-    itens = Item.query.filter(Item.Lote.in_(lotes)).all()
+    itens = db.session.query(Item).filter(Item.Lote.in_(lotes)).all()
 
     if not itens:
         return "Nenhum item encontrado", 404
