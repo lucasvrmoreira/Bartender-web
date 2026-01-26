@@ -1,4 +1,9 @@
 /* ======================================================
+   CONFIGURAÇÃO 
+====================================================== */
+const API_URL = "http://localhost:8000";
+
+/* ======================================================
    ESTADO DA APLICAÇÃO
 ====================================================== */
 let itemSelecionado = null;
@@ -109,9 +114,6 @@ function getNumerosLimpos() {
     .filter((n) => n.length > 0)
     .join(",");
 }
-
-const API_URL = "http://localhost:8000";
-
 
 function getNumerosArray() {
   if (!el.inputLote) return [];
