@@ -20,8 +20,8 @@ from backend.services.print_agent import enviar_para_agente
 print_bp = Blueprint("print", __name__)
 
 
-@print_bp.route("/imprimir/<int:id>")
-def imprimir(id):
+@print_bp.route("/api/imprimir/<int:id>")
+def imprimir_etiqueta(id):
     
     logger.info("Solicitação de impressão", extra={"id": id})
 
@@ -78,7 +78,7 @@ def imprimir(id):
 
 
 
-@print_bp.route("/imprimir-fila")
+@print_bp.route("/api/imprimir-fila")
 def imprimir_fila():
     import re
 

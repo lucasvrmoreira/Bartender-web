@@ -119,3 +119,30 @@ def listar_itens():
         return jsonify(lista)
     except Exception as e:
         return {"erro": str(e)}, 500  
+    
+    
+@api_bp.route("/api/buscar", methods=["GET"])
+def buscar_lotes():
+    numeros_raw = request.args.get("lotes", "").strip()
+    if not numeros_raw:
+        return jsonify([])
+
+    # Transforma "3710, 3711" em ["LIC'3710", "LIC'3711"]
+    import re
+    numeros = re.findall(r"\d+", numeros_raw)
+    lotes_formatados = [f"LIC'{n}" for n in numeros]
+
+    try:
+        resultados = Item.query.filter(Item.Lote.in_(lotes_formatados)).all()
+        
+        lista = [{
+            "id": i.id,
+            "codigo": i.Codigo,
+            "descricao": i.Descricao,
+            "lote": i.Lote,
+            "validade": i.Validade.strftime("%d/%m/%Y") if i.Validade else None
+        } for i in resultados]
+        
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
