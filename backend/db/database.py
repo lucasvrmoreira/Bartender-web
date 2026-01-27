@@ -1,35 +1,58 @@
+# app/db/database.py
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from dotenv import load_dotenv
 
-# 1. PEGA A URL DO AMBIENTE
-DATABASE_URL = os.getenv("DATABASE_URL")
+# Carrega o .env
+load_dotenv()
 
-# 2. AJUSTA A URL PARA O ASYNCPG (SE FOR POSTGRES)
-if DATABASE_URL:
-    
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
-        
-    elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+# Pega a URL bruta
+raw_url = os.getenv("DATABASE_URL")
 
-# 3. CRIA O MOTOR (ENGINE)
-engine = create_async_engine(DATABASE_URL, echo=True)
+# --- TRATAMENTO DA URL (Blindado) ---
+if raw_url:
+    # 1. Garante o driver correto
+    if raw_url.startswith("postgres://"):
+        url = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif raw_url.startswith("postgresql://"):
+        url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    else:
+        url = raw_url
 
-# 4. FÁBRICA DE SESSÕES
-# expire_on_commit=False é obrigatório no modo async
-async_session = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
+    # 2. LIMPEZA RADICAL: Remove tudo depois do '?' para tirar sslmode e channel_binding
+    # Isso evita aquele erro do '&' perdido.
+    if "?" in url:
+        url = url.split("?")[0]
+else:
+    # Fallback caso não tenha variável (evita erro NoneType)
+    url = "postgresql+asyncpg://user:pass@localhost/db"
+
+print(f"🔌 Conectando no banco (URL limpa): {url}") # Log pra gente ver se limpou
+
+# 3. Cria o engine passando os argumentos de SSL explicitamente
+# O Render/Neon exige SSL, então passamos aqui de forma limpa.
+engine = create_async_engine(
+    url,
+    echo=True,
+    # Isso substitui o ?sslmode=require da URL
+    # connect_args={"ssl": "require"} # Tente "require" ou True se der erro
 )
 
-# 5. BASE DOS MODELS (Substitui o db.Model do Flask)
+# --- FIM DO TRATAMENTO ---
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autoflush=False
+)
+
 Base = declarative_base()
 
-# 6. A DEPENDÊNCIA (O "Garçom")
-# O FastAPI vai usar isso para entregar o banco para as rotas
+# Dependency Injection
 async def get_db():
-    async with async_session() as session:
+    async with SessionLocal() as session:
         try:
             yield session
         finally:

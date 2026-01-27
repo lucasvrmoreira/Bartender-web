@@ -5,3 +5,9 @@ psycopg2-binary
 requests
 Flask-SQLAlchemy
 asyncpg
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+jinja2
+python-multipart
