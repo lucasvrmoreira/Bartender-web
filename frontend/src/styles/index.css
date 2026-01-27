@@ -1,0 +1,5 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* O CSS da etiqueta continua protegido no outro arquivo (etiqueta.css) */
