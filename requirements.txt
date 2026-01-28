@@ -5,3 +5,4 @@ psycopg2-binary
 requests
 Flask-SQLAlchemy
 flask-cors
+sentry-sdk[flask]
