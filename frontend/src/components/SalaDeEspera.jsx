@@ -41,14 +41,14 @@ export function SalaDeEspera({ onServerAwake }) {
   return (
     <div style={styles.container}>
       {/* Aqui usamos o seu arquivo local da pasta public */}
-      <dotlottie-player
+      <lottie-player
         src="/cloud.json"
         background="transparent"
         speed="1"
         style={{ width: "350px", height: "350px" }}
-        loop="true" // 👈 Use aspas em vez de chaves
-        autoplay="true" // 👈 Use aspas em vez de chaves
-      ></dotlottie-player>
+        loop
+        autoplay
+      ></lottie-player>
 
       <h2 style={styles.title}>Conectando ao Servidor...</h2>
       <p style={{ ...styles.msg, color: corMensagem }}>{mensagem}</p>
