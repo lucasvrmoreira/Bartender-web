@@ -37,8 +37,3 @@ app.register_blueprint(api_bp)
 app.register_blueprint(print_bp)
 
 
-@app.route("/debug-sentry-backend")
-def debug_sentry():
-    raise Exception("Teste de Erro no Backend Render!")
-
-logger.info("Aplicação Flask iniciada (Modo Módulo)")
