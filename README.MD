@@ -57,11 +57,4 @@ O sistema permite buscar lotes de produtos, visualizar prévias das etiquetas em
 
 ---
 
-## ⚙️ Como Rodar Localmente
 
-Pré-requisitos: Node.js e Python instalados.
-
-### 1. Clone o repositório
-```bash
-git clone [https://github.com/seu-usuario/Bartender-web.git](https://github.com/seu-usuario/Bartender-web.git)
-cd Bartender-web
