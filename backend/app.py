@@ -18,11 +18,10 @@ sentry_sdk.init(
     
     integrations=[FlaskIntegration()],
     
-    # Monitora 100% das transações (útil para ver lentidão no banco/api)
+    # Monitora 100% das transações 
     traces_sample_rate=1.0,
     
-    # O PULO DO GATO: Nomeamos diferente do agente local
-    # Assim você sabe: "Isso é erro do Servidor Render" vs "Isso é erro do PC Local"
+    
     environment="backend-render"
 )
 # -------------------------------------------
@@ -37,7 +36,7 @@ db.init_app(app)
 app.register_blueprint(api_bp)
 app.register_blueprint(print_bp)
 
-# Rota Opcional: Só para você testar se o Backend está enviando erros
+
 @app.route("/debug-sentry-backend")
 def debug_sentry():
     raise Exception("Teste de Erro no Backend Render!")
