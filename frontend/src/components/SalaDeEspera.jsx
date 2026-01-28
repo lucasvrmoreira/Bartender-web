@@ -1,53 +1,54 @@
 // src/components/SalaDeEspera.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'; // 👈 Importação essencial
 
 export function SalaDeEspera({ onServerAwake }) {
   const [mensagem, setMensagem] = useState("Acordando a aplicação...");
   const [corMensagem, setCorMensagem] = useState("#666");
 
-  // Detecta se estamos rodando localmente (Vite oferece essa variável)
+  // Pega a URL do Render que configuramos no .env
+  const API_URL = import.meta.env.VITE_API_URL || "";
   const isDev = import.meta.env.DEV; 
 
   useEffect(() => {
-    // Se for desenvolvimento (localhost), pula a checagem chata
+    // No seu PC, ele pula a espera para facilitar seu trabalho
     if (isDev) {
       console.log("Modo Desenvolvimento: Pulando sala de espera...");
-      onServerAwake(); // Avisa o App que pode abrir
+      onServerAwake(); 
       return;
     }
 
     const checarServidor = async () => {
       try {
-        console.log("Pingando servidor...");
-        // Tenta bater na API (usamos /api/itens pois é uma rota leve)
-        await fetch('/api/itens'); 
+        console.log("Pingando servidor no Render...");
+        // Usamos a URL completa para acordar o backend correto
+        await fetch(`${API_URL}/api/itens`); 
         
-        // SUCESSO!
         setCorMensagem("green");
         setMensagem("Servidor Online! Iniciando...");
         
         setTimeout(() => {
-          onServerAwake(); // Libera o acesso ao App
+          onServerAwake(); 
         }, 1500);
 
       } catch (error) {
-        console.warn("Servidor dormindo... tentando de novo em 2s.");
-        setTimeout(checarServidor, 2000); // Tenta de novo
+        console.warn("Servidor dormindo... tentando de novo.");
+        setTimeout(checarServidor, 2000); 
       }
     };
 
     checarServidor();
-  }, [onServerAwake, isDev]);
+  }, [onServerAwake, isDev, API_URL]);
 
   return (
     <div style={styles.container}>
+      {/* Aqui usamos o seu arquivo local da pasta public */}
       <dotlottie-player
-        rc="https://lottie.host/5a0ea585-6934-43cb-834c-687f8725838d/P52Wv86w0u.json"
+        src="/cloud.json" 
         background="transparent"
         speed="1"
         style={{ width: '350px', height: '350px' }}
-        loop
-        autoplay
+        loop={true}
+        autoplay={true}
       ></dotlottie-player>
 
       <h2 style={styles.title}>Conectando ao Servidor...</h2>
@@ -56,7 +57,6 @@ export function SalaDeEspera({ onServerAwake }) {
   );
 }
 
-// Estilos CSS-in-JS simples para este componente
 const styles = {
   container: {
     height: '100vh',
