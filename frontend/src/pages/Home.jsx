@@ -5,6 +5,10 @@ import '../styles/index.css';
 
 export function Home() {
   // --- ESTADOS ---
+  
+  // 👇 1. IMPORTANTE: Pegamos o endereço do Render aqui
+  const API_URL = import.meta.env.VITE_API_URL || "";
+
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
   const [modelo, setModelo] = useState(() => localStorage.getItem('modelo') || '67x26');
   
@@ -60,7 +64,8 @@ export function Home() {
     setResultados([]);
 
     try {
-      const res = await fetch(`/api/buscar?lotes=${getNumerosFormatados()}`);
+      // 👇 2. CORREÇÃO AQUI: Adicionamos ${API_URL} antes do caminho
+      const res = await fetch(`${API_URL}/api/buscar?lotes=${getNumerosFormatados()}`);
       const data = await res.json();
       setResultados(data);
       if (data.length === 1) setItemSelecionado(data[0]);
@@ -77,10 +82,11 @@ export function Home() {
     try {
       let url = "";
       if (itemSelecionado) {
-        url = `/api/imprimir/${itemSelecionado.id}?modelo=${modelo}&qtd=${qtd}`;
+        // 👇 3. CORREÇÃO AQUI
+        url = `${API_URL}/api/imprimir/${itemSelecionado.id}?modelo=${modelo}&qtd=${qtd}`;
       } else if (resultados.length > 0) {
-        const lotes = getNumerosFormatados();
-        url = `/api/imprimir-fila?numeros=${lotes}&modelo=${modelo}`;
+        // 👇 4. CORREÇÃO AQUI TAMBÉM
+        url = `${API_URL}/api/imprimir-fila?numeros=${lotes}&modelo=${modelo}`;
       } else {
         mostrarToast("Nada para imprimir", "error");
         setLoadingPrint(false);
