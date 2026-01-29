@@ -6,7 +6,7 @@ import '../styles/index.css';
 export function Home() {
   // --- ESTADOS ---
   
-  // 👇 1. IMPORTANTE: Pegamos o endereço do Render aqui
+  // 👇 1. Pegamos o endereço do Render
   const API_URL = import.meta.env.VITE_API_URL || "";
 
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -17,6 +17,10 @@ export function Home() {
   const [itemSelecionado, setItemSelecionado] = useState(null);
   const [qtd, setQtd] = useState(1);
   const [contadorHoje, setContadorHoje] = useState(0); 
+  
+  // --- NOVO ESTADO: QR CODE ---
+  // Começa como true (Ligado)
+  const [imprimirQr, setImprimirQr] = useState(true);
   
   const [loadingBusca, setLoadingBusca] = useState(false);
   const [loadingPrint, setLoadingPrint] = useState(false);
@@ -64,7 +68,6 @@ export function Home() {
     setResultados([]);
 
     try {
-      // 👇 2. CORREÇÃO AQUI: Adicionamos ${API_URL} antes do caminho
       const res = await fetch(`${API_URL}/api/buscar?lotes=${getNumerosFormatados()}`);
       const data = await res.json();
       setResultados(data);
@@ -81,12 +84,16 @@ export function Home() {
     setLoadingPrint(true);
     try {
       let url = "";
+      
+      // --- AQUI ENVIAMOS A DECISÃO DO QR CODE ---
+      // Adicionei &qrcode=${imprimirQr} no final das URLs
+      
       if (itemSelecionado) {
-        // 👇 3. CORREÇÃO AQUI
-        url = `${API_URL}/api/imprimir/${itemSelecionado.id}?modelo=${modelo}&qtd=${qtd}`;
+        url = `${API_URL}/api/imprimir/${itemSelecionado.id}?modelo=${modelo}&qtd=${qtd}&qrcode=${imprimirQr}`;
       } else if (resultados.length > 0) {
-        // 👇 4. CORREÇÃO AQUI TAMBÉM
-        url = `${API_URL}/api/imprimir-fila?numeros=${lotes}&modelo=${modelo}`;
+        // Pega os lotes da busca atual para enviar na fila
+        const lotesParaFila = getNumerosFormatados(); 
+        url = `${API_URL}/api/imprimir-fila?numeros=${lotesParaFila}&modelo=${modelo}&qrcode=${imprimirQr}`;
       } else {
         mostrarToast("Nada para imprimir", "error");
         setLoadingPrint(false);
@@ -134,11 +141,9 @@ export function Home() {
         </div>
       )}
 
-      {/* HEADER NAVBAR (AGORA COM STATUS E CONTADOR) */}
+      {/* HEADER NAVBAR */}
       <header className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-20 h-16 shadow-sm transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
-          
-          {/* ESQUERDA: Logo */}
           <div className="flex items-center gap-2">
             <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
@@ -149,16 +154,12 @@ export function Home() {
             <h1 className="font-bold text-lg text-slate-800 dark:text-white tracking-tight hidden sm:block">Bartender<span className="text-indigo-500">Web</span></h1>
           </div>
           
-          {/* DIREITA: Métricas e Controles */}
           <div className="flex items-center gap-3 sm:gap-6">
-            
-            {/* CONTADOR DE IMPRESSÃO (NOVO LOCAL) */}
             <div className="flex flex-col items-end mr-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">Impressas</span>
               <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 leading-none">{contadorHoje}</span>
             </div>
 
-            {/* STATUS UNIFICADO (COM PULSE) */}
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400 px-3 py-1.5 rounded-full border border-emerald-100 dark:border-emerald-800 shadow-sm">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -168,10 +169,8 @@ export function Home() {
               <span className="sm:hidden">ON</span>
             </div>
 
-            {/* DIVISOR VERTICAL */}
             <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
 
-            {/* BOTÃO DARK MODE */}
             <button 
               onClick={() => setDarkMode(!darkMode)}
               className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors"
@@ -188,7 +187,7 @@ export function Home() {
 
       <main className="max-w-7xl mx-auto px-4 mt-8 flex flex-col gap-6">
         
-        {/* BARRA DE BUSCA (AGORA É O PRIMEIRO ITEM DA TELA) */}
+        {/* BARRA DE BUSCA */}
         <section className="w-full">
            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-1 border border-slate-200 dark:border-slate-700 flex items-center focus-within:ring-2 focus-within:ring-indigo-500/50 transition-all">
               <form onSubmit={buscarDados} className="flex-1 flex items-center h-14">
@@ -329,6 +328,23 @@ export function Home() {
                     className="w-full p-2.5 text-center bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-white focus:border-indigo-500 outline-none"
                     />
                 </div>
+              </div>
+
+              {/* --- NOVO BOTÃO DE QR CODE --- */}
+              <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/30 rounded-lg border border-slate-100 dark:border-slate-700/50">
+                <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-slate-200 dark:bg-slate-600 rounded text-slate-600 dark:text-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4h2v-4zM6 6h6v6H6V6zm12 0h-6v6h6V6zm-6 12H6v-6h6v6z" /></svg>
+                    </div>
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Imprimir QR Code?</span>
+                </div>
+                
+                <button 
+                  onClick={() => setImprimirQr(!imprimirQr)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${imprimirQr ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${imprimirQr ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
               </div>
 
               <div className="pt-4 border-t border-slate-100 dark:border-slate-700 flex gap-3">
