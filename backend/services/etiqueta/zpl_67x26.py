@@ -82,8 +82,7 @@ def gerar_zpl(codigo, descricao, lote, validade, com_qrcode=True):
 
     y += 4 # Respiro
 
-    # --- QR CODE CONFIG ---
-    # Salvamos a posição Y onde começa o rodapé (Lote) para alinhar o QR Code
+    
     y_qrcode = y - 7
 
     # Lote e Validade (Centralizados na largura total)
