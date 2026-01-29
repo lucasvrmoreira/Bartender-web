@@ -22,15 +22,14 @@ def tratar_texto_zpl(texto):
     # Mantém acentos e deixa maiúsculo
     return texto.replace("\n", " ").replace("\r", "").strip().upper()
 
-def gerar_zpl(codigo, descricao, lote, validade):
+# --- MUDANÇA 1: Adicionei ', com_qrcode=True' aqui ---
+def gerar_zpl(codigo, descricao, lote, validade, com_qrcode=True):
     # Definições físicas da etiqueta (67mm x 26mm)
     largura = 536   
     altura = 208    
     margem = 20
     
-    # --- VOLTANDO AO ORIGINAL ---
-    # O texto vai ocupar a largura total disponível, ficando perfeitamente centralizado.
-    # Se ele for muito longo, vai passar por baixo do QR Code (sobreposição), como você pediu.
+    # Layout original (Texto centralizado ocupando tudo)
     fb_desc = largura - (margem * 2)
 
     # --- LIMPEZA DOS DADOS ---
@@ -83,7 +82,7 @@ def gerar_zpl(codigo, descricao, lote, validade):
 
     y += 4 # Respiro
 
-    # --- QR CODE ---
+    # --- QR CODE CONFIG ---
     # Salvamos a posição Y onde começa o rodapé (Lote) para alinhar o QR Code
     y_qrcode = y - 7
 
@@ -92,9 +91,12 @@ def gerar_zpl(codigo, descricao, lote, validade):
     y += esp_info
     zpl += f"^FO{margem},{y}^A0N,{h_info},{h_info+4}^FB{fb_desc},1,0,C,0^FDValidade: {validade_final}^FS\n"
 
-    # QR Code (Estampado por cima, no canto direito)
-    # X=450 deve cair bem naquele espaço vazio que você circulou
-    zpl += f"^FO450,{y_qrcode}^BQN,2,3,M,A^FDQA,{lote_final}^FS\n"
+    # --- MUDANÇA 2: O IF DO QR CODE ---
+    # Só adiciona o comando ZPL se o botão estiver ligado
+    if com_qrcode:
+        # QR Code (Estampado por cima, no canto direito)
+        # X=450 deve cair bem naquele espaço vazio que você circulou
+        zpl += f"^FO450,{y_qrcode}^BQN,2,3,M,A^FDQA,{lote_final}^FS\n"
 
     zpl += "^XZ"
     return zpl
