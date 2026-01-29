@@ -15,5 +15,5 @@ if __name__ == "__main__":
         host="0.0.0.0", 
         port=5000, 
         debug=True, # Mudei para True para te ajudar a ver erros se surgirem
-        use_reloader=False  
+        use_reloader=True
     )
