@@ -24,7 +24,7 @@ export function Home() {
 
   // --- NOVO ESTADO: QR CODE ---
   // Começa como true (Ligado)
-  const [imprimirQr, setImprimirQr] = useState(true);
+  const [imprimirQr, setImprimirQr] = useState(false);
 
   const [loadingBusca, setLoadingBusca] = useState(false);
   const [loadingPrint, setLoadingPrint] = useState(false);
