@@ -14,6 +14,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0", 
         port=5000, 
-        debug=True, # Mudei para True para te ajudar a ver erros se surgirem
+        debug=True, 
         use_reloader=True
     )

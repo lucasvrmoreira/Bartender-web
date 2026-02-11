@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
-    # Ajuste para garantir que a URL funcione no SQLAlchemy síncrono
+    
     uri = os.getenv("DATABASE_URL")
     if uri and uri.startswith("postgres://"):
         uri = uri.replace("postgres://", "postgresql://", 1)

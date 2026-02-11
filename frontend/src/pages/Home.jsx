@@ -77,8 +77,18 @@ export function Home() {
         `${API_URL}/api/buscar?lotes=${getNumerosFormatados()}`,
       );
       const data = await res.json();
+
       setResultados(data);
-      if (data.length === 1) setItemSelecionado(data[0]);
+
+      
+      if (data.length === 0) {
+        mostrarToast("Nenhum item encontrado com esse lote!", "error");
+      }
+      
+      else if (data.length === 1) {
+        setItemSelecionado(data[0]);
+      }
+      // ---------------------------
     } catch (error) {
       console.error(error);
       mostrarToast("Erro ao buscar dados", "error");
@@ -93,12 +103,12 @@ export function Home() {
       let url = "";
 
       // --- AQUI ENVIAMOS A DECISÃO DO QR CODE ---
-      // Adicionei &qrcode=${imprimirQr} no final das URLs
+  
 
       if (itemSelecionado) {
         url = `${API_URL}/api/imprimir/${itemSelecionado.id}?modelo=${modelo}&qtd=${qtd}&qrcode=${imprimirQr}`;
       } else if (resultados.length > 0) {
-        // Pega os lotes da busca atual para enviar na fila
+        
         const lotesParaFila = getNumerosFormatados();
         url = `${API_URL}/api/imprimir-fila?numeros=${lotesParaFila}&modelo=${modelo}&qrcode=${imprimirQr}`;
       } else {
@@ -468,12 +478,11 @@ export function Home() {
                     Cópias
                   </label>
                   <input
-                    type="text" 
-                    inputMode="numeric" 
-                    pattern="[0-9]*" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={qtd}
                     onChange={(e) => {
-                      
                       const valor = e.target.value.replace(/\D/g, "");
                       setQtd(valor === "" ? "" : parseInt(valor));
                     }}
