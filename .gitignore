@@ -1,17 +1,40 @@
-# Python
+# =========================
+# SEGURANÇA E AMBIENTE
+# =========================
+.env
+.env.*
+*.pem
+
+# =========================
+# BACKEND (Python)
+# =========================
 __pycache__/
 *.py[cod]
 *$py.class
+venv/
+env/
+*.db
 
-# Logs
+
+# =========================
+# FRONTEND (React / Node)
+# =========================
+node_modules/
+dist/
+build/
+.npm/
+
+# =========================
+# LOGS
+# =========================
 logs/
 *.log
+npm-debug.log*
 
-# Environment Variables
-.env
-.env.production
-.env.development
-
-# Dependências
-node_modules/
-backend/venv/
+# =========================
+# SISTEMA E IDE
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
