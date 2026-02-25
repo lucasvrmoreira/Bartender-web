@@ -1,19 +1,40 @@
-# Logs
-logs
+# =========================
+# SEGURANÇA E AMBIENTE
+# =========================
+.env
+.env.*
+*.pem
+
+# =========================
+# BACKEND (Python)
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+*.db
+
+
+# =========================
+# FRONTEND (React / Node)
+# =========================
+node_modules/
+dist/
+build/
+.npm/
+
+# =========================
+# LOGS
+# =========================
+logs/
 *.log
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
 
-# Environment Variables (ADICIONE ISSO AQUI)
-.env
-.env.production
-.env.development
-
-node_modules
-dist
-dist-ssr
-*.local
-# ... resto do arquivo ..
+# =========================
+# SISTEMA E IDE
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
