@@ -1,10 +1,8 @@
-from flask_sqlalchemy import SQLAlchemy
+
 from sqlalchemy import Column, Integer, String, Date, UniqueConstraint
+from backend.db.database import Base  
 
-# Inicializamos o db aqui para ser usado em toda a aplicação
-db = SQLAlchemy()
-
-class Item(db.Model):  # AQUI ESTÁ A CHAVE: Mude de (Base) para (db.Model)
+class Item(Base):  
     __tablename__ = 'cellavita'
     
     __table_args__ = (
@@ -12,6 +10,7 @@ class Item(db.Model):  # AQUI ESTÁ A CHAVE: Mude de (Base) para (db.Model)
         {'schema': 'barthenderweb'} 
     )
 
+    # Em Python, variáveis devem ser minúsculas (snake_case).
     id = Column(Integer, primary_key=True)
     Codigo = Column(String, nullable=False)
     Descricao = Column(String, nullable=False)
