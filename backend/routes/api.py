@@ -1,16 +1,36 @@
-from flask import Blueprint, request, jsonify
-from datetime import datetime
-import re 
-from sqlalchemy import or_, and_
+# backend/routes/api.py
+import re
+from datetime import datetime, date
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import or_, and_, desc
+from pydantic import BaseModel
 
-from backend.db.models import db, Item
+from backend.db.database import get_db
+from backend.db.models import Item
 from backend.services.status import normalizar_status
+from backend.logger import logger
 
-api_bp = Blueprint("api", __name__)
+# Cria o roteador (Substitui o Blueprint do Flask)
+router = APIRouter()
 
-# Função para converter data (Princípio DRY - Não repita a si mesmo)
-def converter_data(data_raw):
-    """Tenta converter a string de data, retorna None se falhar ou vier vazio."""
+PREFIXO_LOTE = "LIC'"
+
+# --- PYDANTIC SCHEMAS (A magia da validação automática) ---
+class ItemBase(BaseModel):
+    codigo: str
+    lote: str
+    descricao: str
+    status: str
+    validade: Optional[str] = None # Aceita string ("20/03/2026") ou None
+
+class LoteImportacao(BaseModel):
+    itens: List[ItemBase]
+
+# --- FUNÇÕES AUXILIARES ---
+def converter_data_str_para_date(data_raw: str) -> Optional[date]:
     if not data_raw:
         return None
     try:
@@ -18,137 +38,51 @@ def converter_data(data_raw):
     except ValueError:
         return None
 
+# --- ROTAS ---
 
-@api_bp.route("/api/importar-item", methods=["POST"])
-def importar_item():
-    data = request.get_json()
-    if not data:
-        return {"erro": "JSON inválido"}, 400
-
-    # Prevenção de KeyError 
-    codigo = data.get("codigo")
-    lote = data.get("lote")
-    
-    # Validação: Se o usuário não mandou a moeda (código e lote), a máquina avisa e para aqui.
-    if not codigo or not lote:
-        return {"erro": "Os campos 'codigo' e 'lote' são obrigatórios."}, 400
-
+@router.post("/api/importar-item")
+async def importar_item(item_data: ItemBase, db: AsyncSession = Depends(get_db)):
+    """Recebe um JSON já validado pelo Pydantic (item_data)"""
     try:
-        
-        validade = converter_data(data.get("validade"))
+        validade = converter_data_str_para_date(item_data.validade)
+        status_norm = normalizar_status(item_data.status)
 
-        item = Item.query.filter_by(Codigo=codigo, Lote=lote).first()
+        # Busca assíncrona
+        stmt = select(Item).where(Item.Codigo == item_data.codigo, Item.Lote == item_data.lote)
+        result = await db.execute(stmt)
+        item_bd = result.scalars().first()
 
-        if item:
-            item.Descricao = data.get("descricao")
-            item.Status = normalizar_status(data.get("status"))
-            item.Validade = validade
+        if item_bd:
+            item_bd.Descricao = item_data.descricao
+            item_bd.Status = status_norm
+            item_bd.Validade = validade
         else:
             novo_item = Item(
-                Codigo=codigo,
-                Descricao=data.get("descricao"),
-                Lote=lote,
-                Status=normalizar_status(data.get("status")),
+                Codigo=item_data.codigo,
+                Descricao=item_data.descricao,
+                Lote=item_data.lote,
+                Status=status_norm,
                 Validade=validade
             )
-            db.session.add(novo_item)
+            db.add(novo_item)
 
-        db.session.commit()
+        await db.commit()
         return {"status": "ok"}
 
     except Exception as e:
-        db.session.rollback()
-        #  Segurança: Escondemos o erro real do usuário, mas registramos para nós mesmos.
-        print(f"ERRO CRÍTICO na rota importar-item: {e}") # Em produção, usaríamos uma biblioteca de logs
-        return {"erro": "Falha interna no servidor ao processar o item."}, 500
+        await db.rollback()
+        logger.error(f"ERRO CRÍTICO na rota importar-item: {e}")
+        raise HTTPException(status_code=500, detail="Falha interna no servidor.")
 
 
-@api_bp.route("/api/importar-lote", methods=["POST"])
-def importar_lote():
-    data = request.get_json(silent=True)
-    if not data or "itens" not in data:
-        return {"erro": "JSON inválido ou chave 'itens' ausente"}, 400
-
-    itens_recebidos = data["itens"]
-    if not itens_recebidos:
-        return {"status": "ok", "total_processado": 0}
-
+@router.get("/api/itens")
+async def listar_itens(db: AsyncSession = Depends(get_db)):
     try:
-        #  Criamos uma lista de condições para buscar TODOS os itens de uma vez só no banco, usando OR entre eles.
-        condicoes = []
-        for item in itens_recebidos:
-            cod = item.get("codigo")
-            lote = item.get("lote")
-            if cod and lote:
-                # Cria a condição: (Codigo == cod E Lote == lote)
-                condicoes.append(and_(Item.Codigo == cod, Item.Lote == lote))
-
-        # Fazemos UMA ÚNICA busca no banco de dados! 
-        # Trazemos todos os itens que deram "Match" nas condições acima.
-        itens_existentes = []
-        if condicoes:
-            itens_existentes = Item.query.filter(or_(*condicoes)).all()
-
-        # MAPA DE MEMÓRIA (Dicionário): A chave é (Codigo, Lote) e o valor é o Item do banco
-        mapa_itens = {(i.Codigo, i.Lote): i for i in itens_existentes}
-
-        novos_itens = []
-
-        # 2. Agora, para cada item recebido, verificamos se ele já existe no mapa.
-        for item_data in itens_recebidos:
-            cod = item_data.get("codigo")
-            lote = item_data.get("lote")
-            
-            if not cod or not lote:
-                continue # Ignora itens que vieram sem código ou lote por segurança
-
-            # Utilizamos a função de conversão de data para garantir que a validade esteja no formato correto ou seja None.
-            validade = converter_data(item_data.get("validade"))
-            status_norm = normalizar_status(item_data.get("status"))
-
-            # Procuramos o item no mapa usando a chave (Codigo, Lote)
-            item_bd = mapa_itens.get((cod, lote))
-
-            if item_bd:
-                # Se existe no mapa, apenas atualizamos
-                item_bd.Descricao = item_data.get("descricao")
-                item_bd.Status = status_norm
-                item_bd.Validade = validade
-            else:
-                # Se não existe, preparamos um novo
-                novo = Item(
-                    Codigo=cod,
-                    Descricao=item_data.get("descricao"),
-                    Lote=lote,
-                    Status=status_norm,
-                    Validade=validade
-                )
-                novos_itens.append(novo)
-
-        #  Adicionamos todos os novos de uma vez só no banco
-        if novos_itens:
-            db.session.add_all(novos_itens)
-
-        # O commit finaliza a transação, seja para atualizar os existentes ou adicionar os novos.
-        db.session.commit()
-        return {"status": "ok", "total_processado": len(itens_recebidos)}
-
-    except Exception as e:
-        db.session.rollback()
-        # Log escondido do usuário
-        print(f"ERRO CRÍTICO na rota importar-lote: {e}")
-        return {"erro": "Falha interna ao processar o lote de itens."}, 500
-    
-    
-PREFIXO_LOTE = "LIC'"
-
-@api_bp.route("/api/itens", methods=["GET"])
-def listar_itens():
-    try:
-        # Busca os últimos 50 itens cadastrados para mostrar no monitor
-        itens = Item.query.order_by(Item.id.desc()).limit(50).all()
+        # Busca os últimos 50 itens (Assíncrono)
+        stmt = select(Item).order_by(desc(Item.id)).limit(50)
+        result = await db.execute(stmt)
+        itens = result.scalars().all()
         
-        # Transformamos os objetos do banco em dicionários para enviar como JSON.
         lista = [{
             "id": i.id,
             "codigo": i.Codigo,
@@ -158,28 +92,25 @@ def listar_itens():
             "status": i.Status
         } for i in itens]
 
-        return jsonify(lista)
+        return lista # O FastAPI converte dicionários/listas para JSON automaticamente!
 
     except Exception as e:
-        # Escondemos o erro do cliente e guardamos para nós
-        print(f"ERRO CRÍTICO na rota listar-itens: {e}")
-        return {"erro": "Falha interna ao buscar a lista de itens."}, 500
-    
-    
-@api_bp.route("/api/buscar", methods=["GET"])
-def buscar_lotes():
-    numeros_raw = request.args.get("lotes", "").strip()
-    if not numeros_raw:
-        return jsonify([])
+        logger.error(f"ERRO CRÍTICO na rota listar-itens: {e}")
+        raise HTTPException(status_code=500, detail="Falha interna ao buscar itens.")
 
-    # Extraímos apenas os números da string que o usuário enviou
-    numeros = re.findall(r"\d+", numeros_raw)
-    
-    # Usamos a nossa constante em vez de escrever "LIC'" direto no código
+
+@router.get("/api/buscar")
+async def buscar_lotes(lotes: str = "", db: AsyncSession = Depends(get_db)):
+    if not lotes.strip():
+        return []
+
+    numeros = re.findall(r"\d+", lotes)
     lotes_formatados = [f"{PREFIXO_LOTE}{n}" for n in numeros]
 
     try:
-        resultados = Item.query.filter(Item.Lote.in_(lotes_formatados)).all()
+        stmt = select(Item).where(Item.Lote.in_(lotes_formatados))
+        result = await db.execute(stmt)
+        resultados = result.scalars().all()
         
         lista = [{
             "id": i.id,
@@ -189,8 +120,8 @@ def buscar_lotes():
             "validade": i.Validade.strftime("%d/%m/%Y") if i.Validade else None
         } for i in resultados]
         
-        return jsonify(lista)
+        return lista
 
     except Exception as e:
-        print(f"ERRO CRÍTICO na rota buscar-lotes: {e}")
-        return jsonify({"erro": "Falha interna ao realizar a busca de lotes."}), 500
+        logger.error(f"ERRO CRÍTICO na rota buscar-lotes: {e}")
+        raise HTTPException(status_code=500, detail="Falha interna na busca.")

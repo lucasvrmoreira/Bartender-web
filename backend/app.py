@@ -1,17 +1,28 @@
-from flask import Flask
-from flask_cors import CORS
-from backend.config import Config 
-from backend.routes.api import api_bp
-from backend.routes.print import print_bp
-from backend.db.models import db 
+# backend/app.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
-app.config.from_object(Config)
+# Importaremos as rotas que vamos criar no Passo 2
+from backend.routes.api import router as api_router
+from backend.routes.print import router as print_router
 
-# Inicialização do DB
-db.init_app(app)
+# Inicializa o FastAPI (Substitui o app = Flask(__name__))
+app = FastAPI(title="API Cellavita", description="Migração para FastAPI", version="1.0.0")
 
-# Registre as rotas
-app.register_blueprint(api_bp)
-app.register_blueprint(print_bp)
+# Configuração do CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Em produção, troque "*" pelos domínios reais do seu frontend
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Registra as rotas (Substitui o app.register_blueprint)
+app.include_router(api_router)
+app.include_router(print_router)
+
+# Rota raiz de teste para saber se a API subiu
+@app.get("/")
+async def root():
+    return {"mensagem": "API Cellavita está rodando no FastAPI com AsyncPG!"}
