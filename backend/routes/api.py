@@ -125,3 +125,65 @@ async def buscar_lotes(lotes: str = "", db: AsyncSession = Depends(get_db)):
     except Exception as e:
         logger.error(f"ERRO CRÍTICO na rota buscar-lotes: {e}")
         raise HTTPException(status_code=500, detail="Falha interna na busca.")
+    
+@router.post("/api/importar-lote")
+async def importar_lote(payload: LoteImportacao, db: AsyncSession = Depends(get_db)):
+    """Recebe uma lista de itens já validada pelo Pydantic"""
+    
+    itens_recebidos = payload.itens
+    if not itens_recebidos:
+        return {"status": "ok", "total_processado": 0}
+
+    try:
+        # 1. Montamos as condições da mesma forma (O carrinho de supermercado)
+        condicoes = [
+            and_(Item.Codigo == i.codigo, Item.Lote == i.lote) 
+            for i in itens_recebidos
+        ]
+
+        # 2. Busca em Lote Assíncrona (A viagem única ao banco)
+        itens_existentes = []
+        if condicoes:
+            # SQLAlchemy 2.0: Cria a instrução e aguarda (await) a resposta
+            stmt = select(Item).where(or_(*condicoes))
+            result = await db.execute(stmt)
+            itens_existentes = result.scalars().all()
+
+        # 3. Mapa de memória (Dicionário super rápido)
+        mapa_itens = {(i.Codigo, i.Lote): i for i in itens_existentes}
+        novos_itens = []
+
+        # 4. Atualiza ou cria na memória
+        for item_data in itens_recebidos:
+            validade = converter_data_str_para_date(item_data.validade)
+            status_norm = normalizar_status(item_data.status)
+
+            item_bd = mapa_itens.get((item_data.codigo, item_data.lote))
+
+            if item_bd:
+                # Update
+                item_bd.Descricao = item_data.descricao
+                item_bd.Status = status_norm
+                item_bd.Validade = validade
+            else:
+                # Insert
+                novo = Item(
+                    Codigo=item_data.codigo,
+                    Descricao=item_data.descricao,
+                    Lote=item_data.lote,
+                    Status=status_norm,
+                    Validade=validade
+                )
+                novos_itens.append(novo)
+
+        # 5. Adiciona os novos e salva tudo
+        if novos_itens:
+            db.add_all(novos_itens)
+
+        await db.commit()
+        return {"status": "ok", "total_processado": len(itens_recebidos)}
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"ERRO CRÍTICO na rota importar-lote: {e}")
+        raise HTTPException(status_code=500, detail="Falha interna ao processar o lote de itens.")
