@@ -1,45 +1,51 @@
-# app/db/database.py
+
 import os
+import logging
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from dotenv import load_dotenv
 
-# Carrega o .env
 load_dotenv()
+logger = logging.getLogger(__name__)
 
-# Pega a URL bruta
-raw_url = os.getenv("DATABASE_URL")
+def obter_url_banco() -> str:
+    """Busca e higieniza a URL do banco de dados de forma segura."""
+    raw_url = os.getenv("DATABASE_URL")
+    
+    # FAIL FAST: Se não tem URL, a API não pode nem ligar.
+    if not raw_url:
+        raise ValueError("CRÍTICO: A variável DATABASE_URL não foi encontrada no .env ou no servidor!")
 
-# --- TRATAMENTO DA URL (Blindado) ---
-if raw_url:
-    # 1. Garante o driver correto
-    if raw_url.startswith("postgres://"):
-        url = raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
-    elif raw_url.startswith("postgresql://"):
-        url = raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    else:
-        url = raw_url
+    url = raw_url
+    
+    # Corrige o driver para AsyncPG (Padrão para Render/Neon/Heroku)
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
 
-    # 2. LIMPEZA RADICAL: Remove tudo depois do '?' para tirar sslmode e channel_binding
-    # Isso evita aquele erro do '&' perdido.
+    # Limpeza radical de parâmetros conflitantes do asyncpg
     if "?" in url:
         url = url.split("?")[0]
-else:
-    # Fallback caso não tenha variável (evita erro NoneType)
-    url = "postgresql+asyncpg://user:pass@localhost/db"
+        
+    return url
 
-print(f"🔌 Conectando no banco (URL limpa): {url}") # Log pra gente ver se limpou
+DATABASE_URL = obter_url_banco()
 
-# 3. Cria o engine passando os argumentos de SSL explicitamente
-# O Render/Neon exige SSL, então passamos aqui de forma limpa.
+# Log Seguro: Mostra que conectou, mas esconde a senha
+logger.info("🔌 Configurando conexão com o banco de dados (Credenciais ocultas)")
+
+# Engine Dinâmica: echo=True SÓ no seu PC, nunca em produção
+ambiente = os.getenv("ENVIRONMENT", "development")
+is_dev = ambiente == "development"
+
 engine = create_async_engine(
-    url,
-    echo=True,
-    # Isso substitui o ?sslmode=require da URL
-    # connect_args={"ssl": "require"} # Tente "require" ou True se der erro
+    DATABASE_URL,
+    echo=is_dev, 
+    # DICA PARA O RENDER/NEON: Se der erro de SSL lá na nuvem, 
+    # descomente a linha abaixo apenas no ambiente de produção:
+    # connect_args={"ssl": "require"} if not is_dev else {}
 )
-
-# --- FIM DO TRATAMENTO ---
 
 SessionLocal = sessionmaker(
     bind=engine,
@@ -48,9 +54,11 @@ SessionLocal = sessionmaker(
     autoflush=False
 )
 
-Base = declarative_base()
+# SQLAlchemy Base para os modelos
+class Base(DeclarativeBase):
+    pass
 
-# Dependency Injection
+# Dependency Injection para o FastAPI
 async def get_db():
     async with SessionLocal() as session:
         try:
